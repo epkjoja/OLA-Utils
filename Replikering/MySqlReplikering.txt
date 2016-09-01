@@ -1,0 +1,125 @@
+#############################################
+## Börja att göra följande på tävlingsdagen
+#############################################
+
+** På master-datorn **
+**********************
+# Nollställ bin-loggarna så alla tidigare transaktioner glöms bort och inte behöver replikeras.
+reset master;
+
+Ta en backup på tävlingsdatabasen och för över den till slaven (sätt "set-gtid-purged" till OFF).
+
+** På slav-datorn **
+********************
+Lägg på backupen från mastern.
+
+# Nollställ slaven
+reset master;
+reset slave all;
+
+# Koppla slaven till mastern
+change master to
+ master_host='orion-server',
+ master_port=3306,
+ master_user='ola-repl',
+ master_password='ola-repl',
+ master_auto_position=1;
+
+# Starta slaven
+start slave;
+
+# Sätt usern "ola" till read-only så inga oavsiktliga skrivningar kan göras i slaven
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ola';
+GRANT SELECT ON *.* TO 'ola'@'%';
+FLUSH PRIVILEGES;
+
+# Kolla att slaven är uppe och fungerar med:
+show slave status\G
+
+
+*******************************************************
+** Inställningar som behövs för replikering med GTID **
+*******************************************************
+[mysqld]
+binlog-format=ROW
+log-slave-updates=true
+gtid-mode=ON
+enforce-gtid-consistency=ON
+skip-slave-start=true
+master-info-repository=TABLE
+relay-log-info-repository=TABLE
+sync-master-info=1000
+server-id=<unikt id>	# Servern kan t.ex ha 1 och slavarna 2 o uppåt
+log-bin=<hostname>-bin.log
+report-host=<hostname>
+report-port=3306
+
+// Skapa users ola och ola-repl
+// Kör alltid OLA med databas-usern "ola"
+
+*********************************
+** Sätt Read-only / Reed-write **
+*********************************
+# Sätt OLA till Read-only
+REVOKE ALL PRIVILEGES, GRANT OPTION FROM 'ola';
+GRANT SELECT ON *.* TO 'ola'@'%';FLUSH PRIVILEGES;
+
+# Sätt OLA till Read-Write
+GRANT ALL ON *.* TO 'ola'@'%';FLUSH PRIVILEGES;
+
+
+*****************************
+** Start och stoppa slaven **
+*****************************
+change master to
+ master_host='orion-server',
+ master_port=3306,
+ master_user='ola-repl',
+ master_password='ola-repl',
+ master_auto_position=1;
+change replication filter replicate_do_db = (VarracetLang2016);
+start slave;
+
+# Stoppa och koppla bort en slav
+stop slave;
+reset slave all;
+reset master;
+show slave status\G
+
+
+# Hoppa över en transaktion som inte fungerar på slaven. Slaven har stoppats automatiskt
+show slave status\G
+# Om "Executed_Gtid_Set" exempelvis står på ...dcef1a...d4ad0:1-7
+set gtid_next='dcef1a0e-d9ab-11e5-9408-f0761cfd4ad0:8';
+start slave;
+set gtid_next='automatic';
+
+select @@gtid_next;
+
+# Tvinga en slav att börja på en viss transaktion
+reset master;
+set global GTID_PURGED='dcef1a0e-d9ab-11e5-9408-f0761cfd4ad0:8';
+start slave;
+
+show variables like '%gtid%';
+
+show master status\G
+
+SELECT @@global.read_only;
+
+FLUSH TABLES WITH READ LOCK;
+SET GLOBAL read_only = 1;
+
+SET GLOBAL read_only = 0;
+UNLOCK TABLES;
+
+
+mysqlreplicate --master=root:root@orion-lenovo --slave=root:root@joja-hp --rpl-user=repl-user:repl-user
+mysqlrplshow --master=root:root@orion-lenovo --discover-slaves-login=root:root
+mysqlrplcheck --master=root:root@orion-lenovo --slave=root:root@joja-hp
+
+
+http://mysqlhighavailability.com/mysql-replication-defaults-after-5-7/
+https://dzone.com/articles/how-createrestore-slave-using
+https://avdeo.com/2015/03/04/restoring-slave-when-gtid-is-enabled-on-master/
+http://www.icchasethi.com/mysql-replication/
