@@ -14,6 +14,7 @@ Ta en backup på tävlingsdatabasen och för över den till slaven (sätt "set-g
 Lägg på backupen från mastern.
 
 # Nollställ slaven
+stop slave;
 reset master;
 reset slave all;
 
@@ -112,11 +113,6 @@ SET GLOBAL read_only = 1;
 
 SET GLOBAL read_only = 0;
 UNLOCK TABLES;
-
-
-mysqlreplicate --master=root:root@orion-lenovo --slave=root:root@joja-hp --rpl-user=repl-user:repl-user
-mysqlrplshow --master=root:root@orion-lenovo --discover-slaves-login=root:root
-mysqlrplcheck --master=root:root@orion-lenovo --slave=root:root@joja-hp
 
 
 http://mysqlhighavailability.com/mysql-replication-defaults-after-5-7/

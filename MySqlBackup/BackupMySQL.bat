@@ -1,7 +1,7 @@
 @echo off
 
-set database=sprinthelg2016
-set backupPath=D:\backup\
+set database=stafettsm2016
+set backupPath=D:\stafettsm\
 set username=ola
 set password=ola
 set sleeptime=300
