@@ -10,7 +10,7 @@ and entries.competitorId=personids.personId
 and personids.externalId='21287';
 
 
-# Ett eventuellt bättre alternativ är att istället för att direkt sätt starttiderna för löparna så sätter man unika
+# Ett eventuellt bättre alternativ är att istället för att direkt sätta starttiderna för löparna så sätter man unika
 # seedningsgrupper på alla löparna i den ordning man vill att dom ska starta. Lägsta numret startar först o högsta numret
 # startar sist. När seedningsgrupperna är satta så är det bara att lotta som vanligt ('Starttidsfördelning' måste också vara
 # satt till 'Seeded lottning')
